@@ -19,10 +19,13 @@ which is basically a wrapper for the Socket.io listen() method.
         Sync            = require('sync'),
         app              = module.exports = express.createServer();
 
-    // Configure Redis client
+Configure Redis client
+
     Sync.configure(6379, '127.0.0.1', {
         maxReconnectionAttempts: 10
     });
+    
+Listen to the express server
     
     Sync.listen(app);
     
@@ -33,9 +36,7 @@ Setting up on the client is just as easy, we are basically setting the Socket.io
 that we will be using for data transmition.
 
     window.store = new Store({
-        // Set port
         port : 8080,
-        // Check for HTTPS
         secure : ('https :' == document.location.protocol)
     });
     
