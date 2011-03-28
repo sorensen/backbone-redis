@@ -9,8 +9,9 @@
   },
   "author": "Beau Sorensen <mail@beausorensen.com> (http://beausorensen.com)",
   "directories": {
-    "lib": "."
+    "lib": "./lib"
   },
+  "main": "./index",
   "dependencies": {
     "backbone": ">= 0.3.3",
     "underscore": ">= 1.1.4",

@@ -4,8 +4,8 @@
     var express         = require('express'),
         connect         = require('connect'),
         jade            = require('jade'),
-        Sync            = require('../../sync'),
-        app              = module.exports = express.createServer();
+        Sync            = require('../../lib/backbone-redis'),
+        app             = module.exports = express.createServer();
 
     // Configure Redis client
     Sync.configure(6379, '127.0.0.1', {
@@ -15,8 +15,7 @@
     // Server configuration
     app.configure(function() {
         app.use(express.logger());
-        app.use(express.bodyParser());
-        app.use(express.cookieParser());        
+        app.use(express.bodyParser());   
         app.set('view engine', 'jade');
         app.set('view options', {layout: false});
         app.use(express.static(__dirname));
