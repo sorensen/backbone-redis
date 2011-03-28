@@ -1,18 +1,23 @@
 {
   "name": "backbone-redis",
-  "description": "Persistant backbone storage through redis pub/sub",
+  "description": "Persistant backbone storage through redis pub/sub and socket.io",
   "version": "0.0.1",
-  "author": "Beau Sorensen <mail@beausorensen.com> (http://beausorensen.com/)",
-  "contributors": [ 
-    { "name": "Beau Sorensen", "email": "mail@beausorensen.com" },
-  ],
+  "homepage": "https://github.com/sorensen/backbone-redis",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/sorensen/backbone-redis.git"
+  },
+  "author": "Beau Sorensen <mail@beausorensen.com> (http://beausorensen.com)",
+  "directories": {
+    "lib": "."
+  },
   "dependencies": {
     "backbone": ">= 0.3.3",
     "underscore": ">= 1.1.4",
-    "socket.io": ">= 0.6.2",
-    "redis": ">= 2.2.2"
+    "socket.io": ">= 0.6.2"
   },
   "keywords": ["backbone", "redis", "pubsub", "socket"],
-  "repository": "git://github.com/sorensen/backbone-redis",
-  "engines": { "node": ">= 0.4.1 < 0.5.0" }
+  "engines": {
+    "node": ">= 0.4.1 < 0.5.0"
+  }
 }

@@ -80,7 +80,9 @@
         // to be used for redis syncronization
         save : function(client, data) {
             // Need id to save
-            if (!data.model.id) return;  
+            if (!data.model.id) return;
+            
+            
             
             // Save to redis
             rc.set(data.key, JSON.stringify(data.model), function(err, isset) {    
@@ -100,11 +102,11 @@
                                 Sync.updateCollection(client, data);
                             });
                         } else {
-                            Sync.update(client, data);
+                            Sync.updateCollection(client, data);
                         }                    
                     });
                 } else {
-                    Sync.update(client, data);
+                    Sync.updateCollection(client, data);
                 }
             });
         },
@@ -129,13 +131,19 @@
         // Update
         update : function(client, data) {      
             // Publish to everyone
+            Sync.save(client, data);
+        },
+    
+        // Update
+        updateModel : function(client, data) {      
+            // Publish to everyone
             Sync.publish(data.key, data);
         },
         
         // Update
         updateCollection : function(client, data) {    
             // Publish to everyone
-            if (data.collection) Sync.publish(data.collection, data);
+            Sync.publish(data.collection, data);
         },
         
         // Find
@@ -221,7 +229,6 @@
                         rc.del(data.key, function(err, deleted) {
                             if (err) console.log('Redis Error: DEL: ' + err,err);                        
                             Sync.updateCollection(client, data);
-                            Sync.update(client, data);
                         });
                     }
                 });
@@ -230,7 +237,6 @@
                 rc.del(data.key, function(err, deleted) {
                     if (err) console.log('DEL Error: ' + err,err);                
                     Sync.updateCollection(client, data);
-                    Sync.update(client, data);
                 });
             }
         },

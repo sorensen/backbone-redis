@@ -9,6 +9,17 @@
 + Socket.io
 + Redis
 
+## Installation
+
+The project can be installed via NPM, or by cloning this repo into your project.
+
+    npm install backbone-redis
+    
+or
+
+    git clone git://github.com/sorensen/backbone-redis.git
+    
+
 ## NodeJS Server Configuration
 
 To begin using the module, you must first create an express server, configure the 
@@ -41,7 +52,8 @@ that we will be using for data transmition.
     });
     
 
-Thats it! The point of the module is to override 
+Thats it! The point of the module is to override Backbone.sync and provide a seamless 
+interface to data persistance.
 
     
 ***
