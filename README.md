@@ -54,8 +54,3 @@ that we will be using for data transmition.
 
 Thats it! The point of the module is to override Backbone.sync and provide a seamless 
 interface to data persistance.
-
-    
-***
-
-Beau Sorensen

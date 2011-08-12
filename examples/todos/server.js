@@ -1,42 +1,64 @@
-(function(){
-    // Application Server
-    // ------------------
-    var express         = require('express'),
-        connect         = require('connect'),
-        jade            = require('jade'),
-        Sync            = require('../../lib/backbone-redis'),
-        app             = module.exports = express.createServer();
 
-    // Configure Redis client
-    Sync.configure(6379, '127.0.0.1', {
-        maxReconnectionAttempts: 10
+// Application Server
+// ------------------
+require.paths.unshift('../../lib');
+
+// Project dependencies
+var express      = require('express'),
+    Redis        = require('redis'),
+    middleware   = require('../../'),
+    browserify   = require('browserify'),
+    io           = require('socket.io'),
+    server       = module.exports = express.createServer(),
+    io           = io.listen(server);
+
+// Configuration settings
+var redisConfig  = {
+    port : 6379,
+    host : '127.0.0.1',
+    options : {
+        parser : 'javascript',
+        return_buffer : false
+    },
+};
+
+// Create the publish and subscribe clients for redis to
+// send to the DNode pubsub middleware
+var db  = Redis.createClient(redisConfig.port, redisConfig.host, redisConfig.options),
+    pub = Redis.createClient(redisConfig.port, redisConfig.host, redisConfig.options),
+    sub = Redis.createClient(redisConfig.port, redisConfig.host, redisConfig.options)
+
+// Server configuration, set the server view settings to
+// render in jade, set the session middleware and attatch
+// the browserified bundles to the app on the client side.
+server.configure(function() {
+    server.use(express.bodyParser());
+    server.use(express.methodOverride());
+    server.use(express.static(__dirname + '/../../'));
+    server.use(express.static(__dirname));
+    server.use(express.errorHandler({
+        dumpExceptions : true,
+        showStack      : true
+    }));
+});
+
+// Main application
+server.get('/', function(req, res) {
+    res.render(__dirname + '/index.html');
+});
+
+// Start up the application
+if (!module.parent) {
+    middleware({
+        io        : io,
+        db        : db,
+        publish   : pub,
+        subscribe : sub,
+        listener  : 'backbone'
     });
 
-    // Server configuration
-    app.configure(function() {
-        app.use(express.logger());
-        app.use(express.bodyParser());   
-        app.set('view engine', 'jade');
-        app.set('view options', {layout: false});
-        app.use(express.static(__dirname));
-    });
+    middleware.pre('room:save', function(model, options, next) {
 
-    // Static assets
-    app.get('/*.(js|css)', function(req, res) {
-        res.sendfile('./'+req.url);
     });
-
-    // Main Application
-    app.get('/', function(req, res) {
-        res.render('index', {
-            locals: {
-            }
-        });
-    });
-
-    // Start your engines!
-    app.listen(8080);
-    Sync.listen(app);
-    
-})()
-    
+    server.listen(8080);
+}

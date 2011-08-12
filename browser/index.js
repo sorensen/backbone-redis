@@ -4,4 +4,4 @@
 //    For all details and documentation:
 //    https://github.com/sorensen/backbone-redis
 
-module.exports = require('./lib/backbone-redis');
+module.exports = require('./backbone-redis');

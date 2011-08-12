@@ -6,11 +6,22 @@
 // Load the application once the DOM is ready, using `jQuery.ready`:
 $(function(){
 
+  var socket = io.connect();
+  core.config({
+    io : socket,
+    listener : 'backbone'
+  });
+
   // Todo Model
   // ----------
 
   // Our basic **Todo** model has `content`, `order`, and `done` attributes.
   window.Todo = Backbone.Model.extend({
+
+    // Server communication settings
+    url  : 'todos',
+    type : 'todo',
+    sync : _.sync,
 
     // Default attributes for the todo.
     defaults: {
@@ -48,10 +59,11 @@ $(function(){
     // Reference to this collection's model.
     model: Todo,
 
+    // Server communication settings
     // Save all of the todo items under the `"todos"` namespace.
-    //localStorage: new Store("todos"),
-    url: "todos",
-    storage: "todos",
+    url  : 'todos',
+    type : 'todo',
+    sync : _.sync,
 
     // Filter down the list of all todo items that are finished.
     done: function() {
@@ -190,13 +202,15 @@ $(function(){
     initialize: function() {
       _.bindAll(this, 'addOne', 'addAll', 'render');
 
-      this.input    = this.$("#new-todo");
+      this.input = this.$("#new-todo");
 
       Todos.bind('add',     this.addOne);
-      Todos.bind('refresh', this.addAll);
+      Todos.bind('reset',   this.addAll);
       Todos.bind('all',     this.render);
 
-      Todos.fetch({add: true});
+      Todos.subscribe({}, function() {
+        Todos.fetch();
+      });
     },
 
     // Re-rendering the App just means refreshing the statistics -- the rest
@@ -257,14 +271,6 @@ $(function(){
       this.tooltipTimeout = _.delay(show, 1000);
     }
 
-  });
-
-  // Attatch our socket transports for storage
-  window.store = new Store({
-    // Set port
-    port : 8080,
-    // Check for HTTPS
-    secure : ('https :' == document.location.protocol)
   });
   
   // Finally, we kick things off by creating the **App**.

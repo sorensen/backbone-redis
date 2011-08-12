@@ -1,24 +1,34 @@
 {
-  "name": "backbone-redis",
-  "description": "Persistant backbone storage through redis pub/sub and socket.io",
-  "version": "0.0.1",
-  "homepage": "https://github.com/sorensen/backbone-redis",
-  "repository": {
-    "type": "git",
-    "url": "git://github.com/sorensen/backbone-redis.git"
+  "name"        : "backbone-redis",
+  "description" : "Persistant backbone storage through redis pub/sub and socket.io",
+  "version"     : "0.0.2",
+  "homepage"    : "https://github.com/sorensen/backbone-redis",
+  "repository"  : {
+    "type" : "git",
+    "url"  : "git://github.com/sorensen/backbone-redis.git"
   },
-  "author": "Beau Sorensen <mail@beausorensen.com> (http://beausorensen.com)",
-  "directories": {
-    "lib": "./lib"
+  "directories" : {
+    "lib" : "./lib"
   },
-  "main": "./index",
-  "dependencies": {
-    "backbone": ">= 0.3.3",
-    "underscore": ">= 1.1.4",
-    "socket.io": ">= 0.6.2"
+  "keywords" : [
+    "backbone", 
+    "redis", 
+    "pubsub", 
+    "socket"
+  ],
+  "main" : "./index",
+  "dependencies" : {
+    "backbone"   : ">= 0.5.1",
+    "underscore" : ">= 1.1.7",
+    "socket.io"  : ">= 0.7.0"
   },
-  "keywords": ["backbone", "redis", "pubsub", "socket"],
-  "engines": {
-    "node": ">= 0.4.1 < 0.5.0"
+  "browserify" : "browser/index.js",
+  "engines"    : {
+    "node" : ">= 0.4.1 < 0.5.0"
+  },
+  "author" : {
+    "name"  : "Beau Sorensen",
+    "email" : "mail@beausorensen.com",
+    "url"   : "http://beausorensen.com"
   }
 }
