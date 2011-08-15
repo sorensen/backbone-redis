@@ -1,6 +1,6 @@
-//    Backbone-Redis
+//    backbone-redis
 //    (c) 2011 Beau Sorensen
-//    Backbone-Redis may be freely distributed under the MIT license.
+//    backbone-redis may be freely distributed under the MIT license.
 //    For all details and documentation:
 //    https://github.com/sorensen/backbone-redis
 

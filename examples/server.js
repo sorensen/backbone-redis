@@ -47,8 +47,6 @@ server.get('/', function(req, res) {
     res.render(__dirname + '/index.html');
 });
 
-//db.flushall();
-
 support.config({
     io        : io,
     database  : db,
@@ -59,7 +57,6 @@ support.config({
     showDebug : true,
     showError : true
 });
-
 
 model = support
     .schema({
@@ -95,36 +92,7 @@ model = support
         console.log('todo-pre-publish');
         next(sock, data, cb);
     })
-    .post('create', function(next, sock, data, cb) {
-        console.log('todo-post-create');
-        next(sock, data, cb);
-    })
-    .post('read', function(next, sock, data, cb) {
-        console.log('todo-post-read');
-        next(sock, data, cb);
-    })
-    .post('update', function(next, sock, data, cb) {
-        console.log('todo-post-update');
-        next(sock, data, cb);
-    })
-    .post('delete', function(next, sock, data, cb) {
-        console.log('todo-post-delete');
-        next(sock, data, cb);
-    })
-    .post('subscribe', function(next, sock, data, cb) {
-        console.log('todo-post-subscribe');
-        next(sock, data, cb);
-    })
-    .post('unsubscribe', function(next, sock, data, cb) {
-        console.log('todo-post-unsubscribe');
-        next(sock, data, cb);
-    })
-    .post('publish', function(next, sock, data, cb) {
-        console.log('todo-post-publish');
-        next(sock, data, cb);
-    });
-
-support.model('todo', model);
+    .model('todo', model);
 
 
 server.listen(8080);

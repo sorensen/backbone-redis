@@ -26,7 +26,8 @@ $(function(){
     // Default attributes for the todo.
     defaults: {
       content: "empty todo...",
-      done: false
+      done: false,
+      dirty: "dirty data",
     },
 
     // Ensure that each todo created has `content`.

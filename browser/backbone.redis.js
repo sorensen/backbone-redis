@@ -179,7 +179,7 @@
 
         //###destroyed
         // A model has been destroyed
-        destroyed : function(packet) {
+        deleted : function(packet) {
             var data    = packet.model,
                 options = packet.options,
                 model   = Store[options.channel];
@@ -242,6 +242,7 @@
             if (!socket) return (options.error && options.error(503, model, options));
             var model = this;
             options         || (options = {});
+            options.type    || (options.type = model.type || model.collection.type);
             options.channel || (options.channel = (model.collection) ? _.getUrl(model.collection) : _.getUrl(model));
             options.method = 'subscribe';
 
@@ -273,6 +274,7 @@
             if (!socket) return (options.error && options.error(503, model, options));
             var model = this;
             options         || (options = {});
+            options.type    || (options.type = model.type || model.collection.type);
             options.channel || (options.channel = (model.collection) ? _.getUrl(model.collection) : _.getUrl(model));
             options.method = 'unsubscribe';
 
