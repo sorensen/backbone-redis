@@ -93,6 +93,67 @@ model = support
         next(sock, data, cb);
     })
     .model('todo', model);
+    
+
+var Todo = Backbone.Model.extend({
+
+    // Server communication settings
+    url  : 'todos',
+    type : 'todo',
+    sync : _.sync,
+
+    // Default attributes for the todo.
+    defaults: {
+        content: "empty todo...",
+        done: false,
+    },
+
+    // Ensure that each todo created has `content`.
+    initialize: function() {
+      if (!this.get("content")) {
+        this.set({"content": this.defaults.content});
+      }
+    },
+
+    // Toggle the `done` state of this todo item.
+    toggle: function() {
+        this.save({done: !this.get("done")});
+    },
+
+    // Remove this Todo from *localStorage* and delete its view.
+    clear: function() {
+        this.destroy();
+    }
+
+});
+
+var TodosList = Backbone.Collection.extend({
+    model: Todo,
+    url  : 'todos',
+    type : 'todo',
+    sync : _.sync
+});
+
+var Todos = new TodoList;
+
+Todos.bind('add', function((todo) {
+    console.log('todo added', todo);
+});
+
+Todos.bind('reset', function(todos) {
+    console.log('todo reset', todos);
+});
+
+Todos.subscribe({}, function() {
+    console.log('todos subscribed');
+    
+    Todos.fetch();
+    
+    Todos.create({
+        content: 'server',
+        done : false
+    });
+});
 
 
 server.listen(8080);

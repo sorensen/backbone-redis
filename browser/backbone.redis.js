@@ -17,7 +17,7 @@
     var socket;
 
     // Default socket event listener
-    var listener = 'backbone';
+    var listener = 'message';
 
     // Storage container for subscribed models, allowing the returning method
     // calls from the server know where and how to find the model in question
