@@ -17,7 +17,7 @@
     var socket;
 
     // Default socket event listener
-    var listener = 'message';
+    var listener = 'backbone';
 
     // Storage container for subscribed models, allowing the returning method
     // calls from the server know where and how to find the model in question
@@ -31,17 +31,18 @@
     var Backbone = root.Backbone;
     if (!Backbone && (typeof require !== 'undefined')) Backbone = require('backbone');
 
-    _.mixin({
-
-        // ###getUrl
-        // Helper function to get a URL from a Model or Collection as a property
-        // or as a function.
-        getUrl : function(object) {
-            if (!(object && object.url)) return null;
-            return _.isFunction(object.url) ? object.url() : object.url;
-        }
-    });
-
+    var useOnceRegistry = {};
+    var useOnce = function (options) {
+        var model = useOnceRegistry[JSON.stringify(options)];
+        if (!model) return;
+        delete useOnceRegistry[JSON.stringify(options)];
+        return model;
+    }
+    var registerOnce = function (model, options) {
+        // use the entire options hash as key
+        useOnceRegistry[JSON.stringify(options)] = model;
+    } 
+    
     core = {
 
         //###config
@@ -120,7 +121,7 @@
         //###created
         // A model has been created on the server,
         // get the model or collection based on channel
-        // name or url to set or add the new data
+        // name or channel to set or add the new data
         created : function(packet) {
             var data    = packet.model,
                 options = packet.options,
@@ -143,7 +144,7 @@
         read : function(packet) {
             var data    = packet.model,
                 options = packet.options,
-                model   = Store[options.channel];
+                model   = Store[options.channel] || useOnce(options);
 
             // Model Processing
             if (model instanceof Backbone.Model) {
@@ -179,7 +180,7 @@
 
         //###destroyed
         // A model has been destroyed
-        deleted : function(packet) {
+        destroyed : function(packet) {
             var data    = packet.model,
                 options = packet.options,
                 model   = Store[options.channel];
@@ -192,15 +193,6 @@
     // Extend default Backbone functionality
     _.extend(Backbone.Model.prototype, {
 
-        //###url
-        // This should probably be overriden with the underscore mixins
-        // from the helpers.js methods
-        url : function() {
-            var base = _.getUrl(this.collection) || this.urlRoot || '';
-            if (this.isNew()) return base;
-            return base + (base.charAt(base.length - 1) == ':' ? '' : ':') + encodeURIComponent(this.id);
-        },
-
         //###publish
         // Publish model data to the server for processing, this serves as
         // the main entry point for client to server communications.  If no
@@ -210,8 +202,9 @@
             if (!socket) return (options.error && options.error(503, model, options));
             var model = this;
             options         || (options = {});
-            options.channel || (options.channel = (model.collection) ? _.getUrl(model.collection) : _.getUrl(model));
-            options.method = 'publish';
+            options.channel || (options.channel = model.getChannel());
+            options.method  = 'publish';
+            options.type    = model.type;
 
             var packet = {
                 model   : model.toJSON(),
@@ -222,6 +215,18 @@
                 next && next(response);
             });
             return this;
+        },
+        
+        // used to generate channel name from type
+        getChannel : function() {
+            var type = this.type || (this.collection ? this.collection.type : null);
+            return this.type + (this.id ? ':' + this.id : '');
+        }
+    });
+    
+    _.extend(Backbone.Collection.prototype, {
+        getChannel : function() {
+            return this.type || (this.model && this.model.type ? this.model.type : null);
         }
     });
 
@@ -236,15 +241,15 @@
         //###subscribe
         // Subscribe to the 'Server' for model changes, if 'override' is set to true
         // in the options, this model will replace any other models in the local
-        // 'Store' which holds the reference for future updates. Uses Backbone 'url'
+        // 'Store' which holds the reference for future updates. Uses Backbone 'channel'
         // for subscriptions, relabeled to 'channel' for clarity
         subscribe : function(options, next) {
             if (!socket) return (options.error && options.error(503, model, options));
             var model = this;
-            options         || (options = {});
-            options.type    || (options.type = model.type || model.collection.type);
-            options.channel || (options.channel = (model.collection) ? _.getUrl(model.collection) : _.getUrl(model));
+            options || (options = {});
+            options.channel || (options.channel = model.getChannel());
             options.method = 'subscribe';
+            options.type = model.type;
 
             var packet = {
                 model   : model.toJSON(),
@@ -274,8 +279,7 @@
             if (!socket) return (options.error && options.error(503, model, options));
             var model = this;
             options         || (options = {});
-            options.type    || (options.type = model.type || model.collection.type);
-            options.channel || (options.channel = (model.collection) ? _.getUrl(model.collection) : _.getUrl(model));
+            options.channel || (options.channel = model.getChannel());
             options.method = 'unsubscribe';
 
             var packet = {
@@ -294,7 +298,7 @@
             return this;
         }
     };
-
+    
     // Add to underscore utility functions to allow optional usage
     // This will allow other storage options easier to manage, such as
     // 'localStorage'. This must be set on the model and collection to
@@ -313,16 +317,21 @@
 
             // Set the RPC options for model interaction
             options.type    || (options.type = model.type || model.collection.type);
-            options.url     || (options.url = _.getUrl(model));
-            options.channel || (options.channel = (model.collection) ? _.getUrl(model.collection) : _.getUrl(model));
+            options.channel || (options.channel = model.getChannel());
             options.method  || (options.method = method);
 
+            registerOnce(model, options);
+            
             // Create the packet to send over the wire
             var packet = {
                 model   : model.toJSON(),
                 options : options
             }
-            if (method === 'read') packet.model = {};
+            if (method === 'read') {
+                var lookupModel = {};
+                packet.model.id && (lookupModel.id = packet.model.id);
+                packet.model = lookupModel;
+            }
             socket.emit(listener, packet);
         }
     });
