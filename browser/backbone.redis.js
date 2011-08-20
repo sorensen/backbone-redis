@@ -21,7 +21,12 @@
 
     // Storage container for subscribed models, allowing the returning method
     // calls from the server know where and how to find the model in question
-    var Store = root.Store || (root.Store = {});
+    var Store = {};
+
+    // Available method calls
+    var methods = [
+        'created', 'updated', 'deleted'
+    ];
 
     // Require Underscore, if we're on the server, and it's not already present.
     var _ = root._;
@@ -32,7 +37,6 @@
     if (!Backbone && (typeof require !== 'undefined')) Backbone = require('backbone');
 
     _.mixin({
-
         // ###getUrl
         // Helper function to get a URL from a Model or Collection as a property
         // or as a function.
@@ -45,73 +49,23 @@
     core = {
 
         //###config
+        // Set all of the various configuration settings, and establish 
+        // the main handler for incomming socket messages
         config : function(options, next) {
             options.io && (socket = options.io);
             options.listener && (listener = options.listener);
 
-            socket.on(listener, function (packet) {
-                core.process(packet);
+            socket && socket.on(listener, function (model, options) {
+                core.process(model, options);
             });
             next && next();
         },
 
         //###process
-        process : function(packet) {
-            var model   = packet.model,
-                options = packet.options;
-
-            if (!options || !options.method) {
-                return;
-            }
-            switch(options.method) {
-                case 'published'    : core.published(packet);    break;
-                case 'subscribed'   : core.subscribed(packet);   break;
-                case 'unsubscribed' : core.unsubscribed(packet); break;
-                case 'created'      : core.created(packet);      break;
-                case 'read'         : core.read(packet);         break;
-                case 'updated'      : core.updated(packet);      break;
-                case 'destroyed'    : core.destroyed(packet);    break;
-            }
-        },
-
-        // Pubsub routines
-        //----------------
-
-        //###subscribed
-        // Someone has subscribed to a channel
-        // Note: This method is not required to run the
-        // application, it may prove as a useful way to
-        // update clients, and it may prove to be an added
-        // security risk, when private channels are involved
-        subscribed : function(packet) {
-            var options = packet.options;
-            options.finished && options.finished(packet);
-        },
-
-        //###unsubscribed
-        // Someone has unsubscribed from a channel, see the
-        // note above, as it applies to this method as well
-        unsubscribed : function(packet) {
-            var options = packet.options;
-            options.finished && options.finished(packet);
-        },
-
-        //###published
-        // Data has been published by another client, this serves
-        // as the main entry point for server to client communication.
-        // Events are delegated based on the original method passed,
-        // and are sent to 'crud.dnode.js' for completion
-        published : function(packet) {
-            var options = packet.options;
-            if (!options.method) {
-                return;
-            }
-            switch (options.method) {
-                case 'create' : core.created(packet); break;
-                case 'read'   : core.read(packet); break;
-                case 'update' : core.updated(packet); break;
-                case 'delete' : core.destroyed(packet); break;
-            };
+        process : function(model, options) {
+            if (!options || !options.method) return;
+            if (!options.method in methods) return;
+            core[options.method](model, options);
         },
 
         // CRUD routines
@@ -121,11 +75,8 @@
         // A model has been created on the server,
         // get the model or collection based on channel
         // name or url to set or add the new data
-        created : function(packet) {
-            var data    = packet.model,
-                options = packet.options,
-                model   = Store[options.channel];
-
+        created : function(data, options) {
+            var model = Store[options.channel];
             // Model processing
             if (model instanceof Backbone.Model) {
                 model.set(model.parse(data));
@@ -136,37 +87,11 @@
             options.finished && options.finished(data);
         },
 
-        //###read
-        // The server has responded with data from a
-        // model or collection read event, set or add
-        // the data to the model based on channel
-        read : function(packet) {
-            var data    = packet.model,
-                options = packet.options,
-                model   = Store[options.channel];
-
-            // Model Processing
-            if (model instanceof Backbone.Model) {
-                model.set(model.parse(data));
-            // Collection processing
-            } else if (model instanceof Backbone.Collection) {
-                if (_.isArray(data)) {
-                    model.reset(model.parse(data));
-                } else if (!model.get(data.id)) {
-                    model.add(model.parse(data));
-                }
-            }
-            options.finished && options.finished(data);
-        },
-
         //###updated
         // A model has been updated with new data from the
         // server, set the appropriate model or collection
-        updated : function(packet) {
-            var data    = packet.model,
-                options = packet.options,
-                model   = Store[options.channel];
-
+        updated : function(data, options) {
+            var model = Store[options.channel];
             // Collection processing
             if (model.get(data.id)) {
                 model.get(data.id).set(model.parse(data));
@@ -179,11 +104,8 @@
 
         //###destroyed
         // A model has been destroyed
-        deleted : function(packet) {
-            var data    = packet.model,
-                options = packet.options,
-                model   = Store[options.channel];
-
+        deleted : function(data, options) {
+            var model = Store[options.channel];
             Store[options.channel].remove(data) || delete Store[options.channel];
             options.finished && options.finished(data);
         }
@@ -213,11 +135,7 @@
             options.channel || (options.channel = (model.collection) ? _.getUrl(model.collection) : _.getUrl(model));
             options.method = 'publish';
 
-            var packet = {
-                model   : model.toJSON(),
-                options : options
-            };
-            socket.emit(listener, packet, function(response){
+            socket.emit(listener, model.toJSON(), options, function(response){
                 if (!options.silent) model.trigger('publish', model, options);
                 next && next(response);
             });
@@ -246,16 +164,11 @@
             options.channel || (options.channel = (model.collection) ? _.getUrl(model.collection) : _.getUrl(model));
             options.method = 'subscribe';
 
-            var packet = {
-                model   : model.toJSON(),
-                options : options
-            };
-
             // Add the model to a local object container so that other methods
             // called from the 'Server' have access to it
             if (!Store[options.channel] || options.override) {
                 Store[options.channel] = model;
-                socket.emit(listener, packet, function(response) {
+                socket.emit(listener, false, options, function(response) {
                     if (!options.silent) model.trigger('subscribe', model, options);
                     next && next(response);
                 });
@@ -278,11 +191,7 @@
             options.channel || (options.channel = (model.collection) ? _.getUrl(model.collection) : _.getUrl(model));
             options.method = 'unsubscribe';
 
-            var packet = {
-                model   : {},
-                options : options
-            }
-            socket.emit(listener, packet, function(response) {
+            socket.emit(listener, false, options, function(response) {
                 if (!options.silent) model.trigger('unsubscribe', model, options);
                 next && next(response);
             });
@@ -306,24 +215,20 @@
         sync : function(method, model, options) {
             if (!socket) return (options.error && options.error(503, model, options));
 
-            // Remove the Backbone id from the model as not to conflict with
-            // Mongoose schemas, it will be re-assigned when the model returns
-            // to the client side
-            if (model.attributes && model.attributes._id) delete model.attributes.id;
-
             // Set the RPC options for model interaction
             options.type    || (options.type = model.type || model.collection.type);
-            options.url     || (options.url = _.getUrl(model));
             options.channel || (options.channel = (model.collection) ? _.getUrl(model.collection) : _.getUrl(model));
             options.method  || (options.method = method);
 
-            // Create the packet to send over the wire
-            var packet = {
-                model   : model.toJSON(),
-                options : options
+            // Only a `read` event will return directly, all other methods 
+            // are simply pushed to the server, and then caught on the 
+            // returning published event
+            if (method === 'read') {
+                socket.emit(listener, model, options, function(results) {
+                    options.success(results);
+                });
             }
-            if (method === 'read') packet.model = {};
-            socket.emit(listener, packet);
+            else socket.emit(listener, model.toJSON(), options);
         }
     });
 
@@ -333,6 +238,6 @@
 
     // Exported for both CommonJS and the browser.
     if (typeof exports !== 'undefined') module.exports = core;
-    else root.core = core;
+    else root.bbRedis = core;
 
 }).call(this)

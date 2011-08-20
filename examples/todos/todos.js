@@ -7,7 +7,7 @@
 $(function(){
 
   var socket = io.connect();
-  core.config({
+  bbRedis.config({
     io : socket,
     listener : 'backbone'
   });
@@ -209,9 +209,8 @@ $(function(){
       Todos.bind('reset',   this.addAll);
       Todos.bind('all',     this.render);
 
-      Todos.subscribe({}, function() {
-        Todos.fetch();
-      });
+      Todos.fetch();
+      Todos.subscribe();
     },
 
     // Re-rendering the App just means refreshing the statistics -- the rest

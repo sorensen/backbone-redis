@@ -4,13 +4,13 @@
 require.paths.unshift('../../lib');
 
 // Project dependencies
-var express      = require('express'),
-    Redis        = require('redis'),
-    support   = require('../../'),
-    browserify   = require('browserify'),
-    io           = require('socket.io'),
-    server       = module.exports = express.createServer(),
-    io           = io.listen(server);
+var express    = require('express'),
+    Redis      = require('redis'),
+    bbRedis    = require('../../'),
+    browserify = require('browserify'),
+    io         = require('socket.io'),
+    server     = module.exports = express.createServer(),
+    io         = io.listen(server);
 
 // Configuration settings
 var redisConfig  = {
@@ -23,7 +23,7 @@ var redisConfig  = {
 };
 
 // Create the publish and subscribe clients for redis to
-// send to the DNode pubsub middleware
+// send to the pubsub middleware
 var db  = Redis.createClient(redisConfig.port, redisConfig.host, redisConfig.options),
     pub = Redis.createClient(redisConfig.port, redisConfig.host, redisConfig.options),
     sub = Redis.createClient(redisConfig.port, redisConfig.host, redisConfig.options)
@@ -47,9 +47,9 @@ server.get('/', function(req, res) {
     res.render(__dirname + '/index.html');
 });
 
-//db.flushall();
+db.flushall();
 
-support.config({
+bbRedis.config({
     io        : io,
     database  : db,
     publish   : pub,
@@ -61,70 +61,14 @@ support.config({
 });
 
 
-model = support
+model = bbRedis
     .schema({
         content : '',
         order   : '',
         done    : ''
-    })
-    .pre('create', function(next, sock, data, cb) {
-        console.log('todo-pre-create');
-        next(sock, data, cb);
-    })
-    .pre('read', function(next, sock, data, cb) {
-        console.log('todo-pre-read');
-        next(sock, data, cb);
-    })
-    .pre('update', function(next, sock, data, cb) {
-        console.log('todo-pre-update');
-        next(sock, data, cb);
-    })
-    .pre('delete', function(next, sock, data, cb) {
-        console.log('todo-pre-delete');
-        next(sock, data, cb);
-    })
-    .pre('subscribe', function(next, sock, data, cb) {
-        console.log('todo-pre-subscribe');
-        next(sock, data, cb);
-    })
-    .pre('unsubscribe', function(next, sock, data, cb) {
-        console.log('todo-pre-unsubscribe');
-        next(sock, data, cb);
-    })
-    .pre('publish', function(next, sock, data, cb) {
-        console.log('todo-pre-publish');
-        next(sock, data, cb);
-    })
-    .post('create', function(next, sock, data, cb) {
-        console.log('todo-post-create');
-        next(sock, data, cb);
-    })
-    .post('read', function(next, sock, data, cb) {
-        console.log('todo-post-read');
-        next(sock, data, cb);
-    })
-    .post('update', function(next, sock, data, cb) {
-        console.log('todo-post-update');
-        next(sock, data, cb);
-    })
-    .post('delete', function(next, sock, data, cb) {
-        console.log('todo-post-delete');
-        next(sock, data, cb);
-    })
-    .post('subscribe', function(next, sock, data, cb) {
-        console.log('todo-post-subscribe');
-        next(sock, data, cb);
-    })
-    .post('unsubscribe', function(next, sock, data, cb) {
-        console.log('todo-post-unsubscribe');
-        next(sock, data, cb);
-    })
-    .post('publish', function(next, sock, data, cb) {
-        console.log('todo-post-publish');
-        next(sock, data, cb);
     });
 
-support.model('todo', model);
+bbRedis.model('todo', model);
 
 
 server.listen(8080);

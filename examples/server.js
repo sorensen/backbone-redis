@@ -4,13 +4,17 @@
 require.paths.unshift('../../lib');
 
 // Project dependencies
-var express      = require('express'),
-    Redis        = require('redis'),
-    support   = require('../../'),
-    browserify   = require('browserify'),
-    io           = require('socket.io'),
-    server       = module.exports = express.createServer(),
-    io           = io.listen(server);
+var express    = require('express'),
+    Redis      = require('redis'),
+    browserify = require('browserify'),
+    Backbone   = require('backbone'),
+    _          = require('underscore'),
+    bbRedis    = require('../'),
+    io         = require('socket.io'),
+    server     = module.exports = express.createServer(),
+    io         = io.listen(server);
+
+Backbone.sync = bbRedis.sync;
 
 // Configuration settings
 var redisConfig  = {
@@ -47,7 +51,7 @@ server.get('/', function(req, res) {
     res.render(__dirname + '/index.html');
 });
 
-support.config({
+bbRedis.config({
     io        : io,
     database  : db,
     publish   : pub,
@@ -58,41 +62,38 @@ support.config({
     showError : true
 });
 
-model = support
+var model = bbRedis
     .schema({
         content : '',
         order   : '',
         done    : ''
     })
-    .pre('create', function(next, sock, data, cb) {
+    .pre('create', function(next, model, options, cb) {
         console.log('todo-pre-create');
-        next(sock, data, cb);
+        next(model, options, cb);
     })
-    .pre('read', function(next, sock, data, cb) {
+    .pre('read', function(next, model, options, cb) {
         console.log('todo-pre-read');
-        next(sock, data, cb);
+        next(model, options, cb);
     })
-    .pre('update', function(next, sock, data, cb) {
+    .pre('update', function(next, model, options, cb) {
         console.log('todo-pre-update');
-        next(sock, data, cb);
+        next(model, options, cb);
     })
-    .pre('delete', function(next, sock, data, cb) {
+    .pre('delete', function(next, model, options, cb) {
         console.log('todo-pre-delete');
-        next(sock, data, cb);
+        next(model, options, cb);
     })
-    .pre('subscribe', function(next, sock, data, cb) {
+    .pre('subscribe', function(next, socket, options, cb) {
         console.log('todo-pre-subscribe');
-        next(sock, data, cb);
+        next(socket, options, cb);
     })
-    .pre('unsubscribe', function(next, sock, data, cb) {
+    .pre('unsubscribe', function(next, socket, options, cb) {
         console.log('todo-pre-unsubscribe');
-        next(sock, data, cb);
-    })
-    .pre('publish', function(next, sock, data, cb) {
-        console.log('todo-pre-publish');
-        next(sock, data, cb);
-    })
-    .model('todo', model);
+        next(socket, options, cb);
+    });
+
+bbRedis.model('todo', model);
     
 
 var Todo = Backbone.Model.extend({
@@ -127,7 +128,7 @@ var Todo = Backbone.Model.extend({
 
 });
 
-var TodosList = Backbone.Collection.extend({
+var TodoList = Backbone.Collection.extend({
     model: Todo,
     url  : 'todos',
     type : 'todo',
@@ -136,7 +137,7 @@ var TodosList = Backbone.Collection.extend({
 
 var Todos = new TodoList;
 
-Todos.bind('add', function((todo) {
+Todos.bind('add', function(todo) {
     console.log('todo added', todo);
 });
 
@@ -144,16 +145,29 @@ Todos.bind('reset', function(todos) {
     console.log('todo reset', todos);
 });
 
+Todos.bind('remove', function(todos) {
+    console.log('todo removed', todos);
+});
+
+Todos.bind('change', function(todos) {
+    console.log('todo changed', todos);
+});
+
+Todos.fetch();
+
+Todos.create({
+    content: 'server',
+    done : false
+});
+
 Todos.subscribe({}, function() {
     console.log('todos subscribed');
     
-    Todos.fetch();
-    
     Todos.create({
-        content: 'server',
+        content: 'subbed-server',
         done : false
     });
 });
 
 
-server.listen(8080);
+server.listen(8000);
