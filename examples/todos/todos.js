@@ -209,6 +209,13 @@ $(function(){
       Todos.bind('reset',   this.addAll);
       Todos.bind('all',     this.render);
 
+      Todos.bind('subscribe', function(data) {
+          console.log('subscribed', data);
+      });
+      Todos.bind('unsubscribe', function(data) {
+          console.log('subscribed', data);
+      });
+
       Todos.fetch();
       Todos.subscribe();
     },

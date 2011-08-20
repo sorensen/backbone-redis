@@ -25,7 +25,8 @@
 
     // Available method calls
     var methods = [
-        'created', 'updated', 'deleted'
+        'created', 'updated', 'deleted',
+        'subscribed', 'unsubscribed'
     ];
 
     // Require Underscore, if we're on the server, and it's not already present.
@@ -54,7 +55,6 @@
         config : function(options, next) {
             options.io && (socket = options.io);
             options.listener && (listener = options.listener);
-
             socket && socket.on(listener, function (model, options) {
                 core.process(model, options);
             });
@@ -102,11 +102,36 @@
             options.finished && options.finished(data);
         },
 
-        //###destroyed
-        // A model has been destroyed
+        //###deleted
+        // A model has been deleted
         deleted : function(data, options) {
-            var model = Store[options.channel];
             Store[options.channel].remove(data) || delete Store[options.channel];
+            options.finished && options.finished(data);
+        },
+
+        // Pubsub routines
+        //----------------
+
+        //###subscribed
+        // Someone has subscribed to a channel
+        // Note: This method is not required to run the
+        // application, it may prove as a useful way to
+        // update clients, and it may prove to be an added
+        // security risk, when private channels are involved
+        subscribed : function(data, options) {
+            console.log('bbSubscribed', data, options);
+            var model = Store[options.channel];
+            if (!options.silent) model.trigger('unsubscribe', options);
+            options.finished && options.finished(data);
+        },
+
+        //###unsubscribed
+        // Someone has unsubscribed from a channel, see the
+        // note above, as it applies to this method as well
+        unsubscribed : function(data, options) {
+            console.log('bbSubscribed', data, options);
+            var model = Store[options.channel];
+            if (!options.silent) model.trigger('unsubscribe', options);
             options.finished && options.finished(data);
         }
     };
@@ -134,9 +159,8 @@
             options         || (options = {});
             options.channel || (options.channel = (model.collection) ? _.getUrl(model.collection) : _.getUrl(model));
             options.method = 'publish';
-
             socket.emit(listener, model.toJSON(), options, function(response){
-                if (!options.silent) model.trigger('publish', model, options);
+                if (!options.silent) model.trigger('publish', response);
                 next && next(response);
             });
             return this;
@@ -169,11 +193,9 @@
             if (!Store[options.channel] || options.override) {
                 Store[options.channel] = model;
                 socket.emit(listener, false, options, function(response) {
-                    if (!options.silent) model.trigger('subscribe', model, options);
                     next && next(response);
                 });
             } else {
-                if (!options.silent) model.trigger('subscribe', model, options);
                 next && next(response);
             }
             return this;
@@ -190,9 +212,7 @@
             options.type    || (options.type = model.type || model.collection.type);
             options.channel || (options.channel = (model.collection) ? _.getUrl(model.collection) : _.getUrl(model));
             options.method = 'unsubscribe';
-
             socket.emit(listener, false, options, function(response) {
-                if (!options.silent) model.trigger('unsubscribe', model, options);
                 next && next(response);
             });
 
