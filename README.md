@@ -20,37 +20,95 @@ or
     git clone git://github.com/sorensen/backbone-redis.git
     
 
-## NodeJS Server Configuration
+## Server Configuration
 
-To begin using the module, you must first create an express server, configure the 
-redis server that you will be using, and then to tell 'Sync' to listen to the app, 
-which is basically a wrapper for the Socket.io listen() method.
+    var express    = require('express'),
+        Redis      = require('redis'),
+        bbRedis    = require('../../'),
+        browserify = require('browserify'),
+        io         = require('socket.io'),
+        server     = module.exports = express.createServer(),
+        io         = io.listen(server);
 
-    var express         = require('express'),
-        Sync            = require('sync'),
-        app              = module.exports = express.createServer();
+    var db  = Redis.createClient(6379, '127.0.0.1'),
+        pub = Redis.createClient(6379, '127.0.0.1'),
+        sub = Redis.createClient(6379, '127.0.0.1')
 
-Configure Redis client
-
-    Sync.configure(6379, '127.0.0.1', {
-        maxReconnectionAttempts: 10
+    bbRedis.config({
+        io        : io,
+        database  : db,
+        publish   : pub,
+        subscribe : sub,
+        listener  : 'backbone',
     });
     
-Listen to the express server
-    
-    Sync.listen(app);
-    
+    server.listen(8080);
 
+You can also create schemas for your models, which will have 
+hookable methods for you to intercept the data. The hookable
+methods are `create`, `read`, `update`, `delete`, `subscribe`, 
+and `unsubscribe`, each with both `pre` and `post` 
+methods attached.
+    
+    var fooSchema = bbRedis.schema();
+    
+    fooSchema
+        .pre('create', function(next, model, options, cb) {
+            next(model, options, cb);
+        })
+        .post('create', function(next, model, options, cb) {
+            next(model, options, cb);
+        });
+        .pre('subscribe', function(next, socket, options, cb) {
+            next(socket, options, cb);
+        })
+        .post('subscribe', function(next, socket, options, cb) {
+            next(socket, options, cb);
+        });
+
+    bbRedis.model('foo', fooSchema);
+
+Just be sure the name you give for the schema matches the `type` 
+attribute that you set on the Backbone model.
+    
 ## Client Configuration
 
-Setting up on the client is just as easy, we are basically setting the Socket.io port
-that we will be using for data transmition.
+    <script src='/socket.io/socket.io.js'></script>
+    <script src="/underscore.js"></script>
+    <script src="/backbone.js"></script>
 
-    window.store = new Store({
-        port : 8080,
-        secure : ('https :' == document.location.protocol)
+If you have cloned the repo, just serve the file.
+Otherwise you can expose it to the client using `browserify`.
+
+    <script src="/backbone.redis.js"></script>
+
+    var socket = io.connect();
+    
+    bbRedis.config({
+        io : socket,
+        listener : 'message'
+    });
+
+    var Foo = Backbone.Model.extend({
+        url  : 'foos',
+        type : 'foo',
+        sync : _.sync
     });
     
+    var FooList = Backbone.Collection.extend({
+        model: Todo,
+        url  : 'todos',
+        type : 'todo',
+        sync : _.sync
+    });
 
-Thats it! The point of the module is to override Backbone.sync and provide a seamless 
-interface to data persistance.
+Now that there is something to work with, we can use all of the 
+default Backbone methods
+
+    FooList.fetch();
+    FooList.subscribe({}, function(){
+        FooList.create({
+            data : 'lorem ipsum'
+        })
+        FooList.unsubscribe();
+    });
