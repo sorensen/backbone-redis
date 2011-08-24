@@ -38,6 +38,7 @@
     if (!Backbone && (typeof require !== 'undefined')) Backbone = require('backbone');
 
     _.mixin({
+    
         // ###getUrl
         // Helper function to get a URL from a Model or Collection as a property
         // or as a function.
@@ -48,7 +49,7 @@
     });
 
     core = {
-
+    
         //###config
         // Set all of the various configuration settings, and establish 
         // the main handler for incomming socket messages
@@ -119,7 +120,6 @@
         // update clients, and it may prove to be an added
         // security risk, when private channels are involved
         subscribed : function(data, options) {
-            console.log('bbSubscribed', data, options);
             var model = Store[options.channel];
             if (!options.silent) model.trigger('unsubscribe', options);
             options.finished && options.finished(data);
@@ -129,7 +129,6 @@
         // Someone has unsubscribed from a channel, see the
         // note above, as it applies to this method as well
         unsubscribed : function(data, options) {
-            console.log('bbSubscribed', data, options);
             var model = Store[options.channel];
             if (!options.silent) model.trigger('unsubscribe', options);
             options.finished && options.finished(data);
@@ -169,11 +168,6 @@
 
     // Common extention object for both models and collections
     var common = {
-
-        //###connection
-        // Setting a reference to the DNode/socket connection to allow direct
-        // server communication without the need of a global object
-        connection : socket,
 
         //###subscribe
         // Subscribe to the 'Server' for model changes, if 'override' is set to true
@@ -231,7 +225,7 @@
     _.mixin({
 
         //###sync
-        // Set the model or collection's sync method to communicate through DNode
+        // Set the model or collection's sync method to communicate through socket.io
         sync : function(method, model, options) {
             if (!socket) return (options.error && options.error(503, model, options));
 
