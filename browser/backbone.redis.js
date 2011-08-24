@@ -43,7 +43,7 @@
             if (onError) {
                 onError(model, resp, options);
             } else {
-                model.trigger('error', model, resp, options);
+                options.silent || model.trigger('error', model, resp, options);
             }
         };
     };
@@ -55,7 +55,7 @@
             if (onFinished) {
                 onFinished(model, resp, options);
             } else {
-                model.trigger('success', model, resp, options);
+                options.silent || model.trigger('success', model, resp, options);
             }
         };
     };
@@ -171,11 +171,16 @@
         // method is provided, it defaults to an 'update', which is the least
         // conflicting method when returned to the client for processing
         publish : function(options, next) {
-            if (!socket) return (options.error && options.error(503, model, options));
             var model = this;
             options         || (options = {});
             options.channel || (options.channel = (model.collection) ? _.getUrl(model.collection) : _.getUrl(model));
             options.method = 'publish';
+            options.error = wrapError(options.error, model, options);
+            
+            if (!socket) {
+                options.error();
+                return;
+            }
             socket.emit(listener, model.toJSON(), options, function(response){
                 if (!options.silent) model.trigger('publish', response);
                 next && next(response);
@@ -193,13 +198,17 @@
         // 'Store' which holds the reference for future updates. Uses Backbone 'url'
         // for subscriptions, relabeled to 'channel' for clarity
         subscribe : function(options, next) {
-            if (!socket) return (options.error && options.error(503, model, options));
             var model = this;
             options         || (options = {});
             options.type    || (options.type = model.type || model.collection.type);
             options.channel || (options.channel = (model.collection) ? _.getUrl(model.collection) : _.getUrl(model));
             options.method = 'subscribe';
-
+            options.error = wrapError(options.error, model, options);
+            
+            if (!socket) {
+                options.error();
+                return;
+            }
             // Add the model to a local object container so that other methods
             // called from the 'Server' have access to it
             if (!Store[options.channel] || options.override) {
@@ -218,12 +227,17 @@
         // subscription 'Store', will trigger an unsubscribe event unless 'silent'
         // is passed in the options
         unsubscribe : function(options, next) {
-            if (!socket) return (options.error && options.error(503, model, options));
             var model = this;
             options         || (options = {});
             options.type    || (options.type = model.type || model.collection.type);
             options.channel || (options.channel = (model.collection) ? _.getUrl(model.collection) : _.getUrl(model));
             options.method = 'unsubscribe';
+            options.error = wrapError(options.error, model, options);
+            
+            if (!socket) {
+                options.error();
+                return;
+            }
             socket.emit(listener, false, options, function(response) {
                 next && next(response);
             });
