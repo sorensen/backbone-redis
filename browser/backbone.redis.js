@@ -37,6 +37,29 @@
     var Backbone = root.Backbone;
     if (!Backbone && (typeof require !== 'undefined')) Backbone = require('backbone');
 
+    // Wrap an optional error callback with a fallback error event.
+    var wrapError = function(onError, model, options) {
+        return function(resp) {
+            if (onError) {
+                onError(model, resp, options);
+            } else {
+                model.trigger('error', model, resp, options);
+            }
+        };
+    };
+    
+    // Wrap an optional success callback with a fallback error event, renamed to 
+    // `finished` to avoid conflicts with Backbone's internal `success` methods.
+    var wrapFinished = function(onFinished, model, options) {
+        return function(resp) {
+            if (onFinished) {
+                onFinished(model, resp, options);
+            } else {
+                model.trigger('success', model, resp, options);
+            }
+        };
+    };
+
     _.mixin({
     
         // ###getUrl
@@ -85,7 +108,6 @@
             } else if (model instanceof Backbone.Collection) {
                 if (!model.get(data.id)) model.add(model.parse(data));
             }
-            options.finished && options.finished(data);
         },
 
         //###updated
@@ -100,14 +122,12 @@
             } else {
                 model.set(model.parse(data));
             }
-            options.finished && options.finished(data);
         },
 
         //###deleted
         // A model has been deleted
         deleted : function(data, options) {
             Store[options.channel].remove(data) || delete Store[options.channel];
-            options.finished && options.finished(data);
         },
 
         // Pubsub routines
@@ -122,7 +142,6 @@
         subscribed : function(data, options) {
             var model = Store[options.channel];
             if (!options.silent) model.trigger('unsubscribe', options);
-            options.finished && options.finished(data);
         },
 
         //###unsubscribed
@@ -131,7 +150,6 @@
         unsubscribed : function(data, options) {
             var model = Store[options.channel];
             if (!options.silent) model.trigger('unsubscribe', options);
-            options.finished && options.finished(data);
         }
     };
 
@@ -233,6 +251,8 @@
             options.type    || (options.type = model.type || model.collection.type);
             options.channel || (options.channel = (model.collection) ? _.getUrl(model.collection) : _.getUrl(model));
             options.method  || (options.method = method);
+            options.error = wrapError(options.error, model, options);
+            options.finished = wrapFinished(options.finished, model, options);
 
             // Only a `read` event will return directly, all other methods 
             // are simply pushed to the server, and then caught on the 
@@ -242,7 +262,9 @@
                     options.success(results);
                 });
             }
-            else socket.emit(listener, model.toJSON(), options);
+            else socket.emit(listener, model.toJSON(), options, function(resp) {
+                options.finished(resp);
+            });
         }
     });
 
