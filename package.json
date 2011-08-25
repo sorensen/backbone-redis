@@ -1,7 +1,7 @@
 {
   "name"        : "backbone-redis",
   "description" : "Persistant backbone storage through redis pub/sub and socket.io",
-  "version"     : "0.0.3",
+  "version"     : "0.0.4",
   "homepage"    : "https://github.com/sorensen/backbone-redis",
   "repository"  : {
     "type" : "git",
