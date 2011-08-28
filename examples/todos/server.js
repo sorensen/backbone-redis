@@ -6,7 +6,7 @@ require.paths.unshift('../../lib');
 // Project dependencies
 var express      = require('express'),
     Redis        = require('redis'),
-    support   = require('../../'),
+    middleware   = require('../../'),
     browserify   = require('browserify'),
     io           = require('socket.io'),
     server       = module.exports = express.createServer(),
@@ -47,84 +47,18 @@ server.get('/', function(req, res) {
     res.render(__dirname + '/index.html');
 });
 
-//db.flushall();
-
-support.config({
-    io        : io,
-    database  : db,
-    publish   : pub,
-    subscribe : sub,
-    listener  : 'backbone',
-    safeMode  : true,
-    showDebug : true,
-    showError : true
-});
-
-
-model = support
-    .schema({
-        content : '',
-        order   : '',
-        done    : ''
-    })
-    .pre('create', function(next, sock, data, cb) {
-        console.log('todo-pre-create');
-        next(sock, data, cb);
-    })
-    .pre('read', function(next, sock, data, cb) {
-        console.log('todo-pre-read');
-        next(sock, data, cb);
-    })
-    .pre('update', function(next, sock, data, cb) {
-        console.log('todo-pre-update');
-        next(sock, data, cb);
-    })
-    .pre('delete', function(next, sock, data, cb) {
-        console.log('todo-pre-delete');
-        next(sock, data, cb);
-    })
-    .pre('subscribe', function(next, sock, data, cb) {
-        console.log('todo-pre-subscribe');
-        next(sock, data, cb);
-    })
-    .pre('unsubscribe', function(next, sock, data, cb) {
-        console.log('todo-pre-unsubscribe');
-        next(sock, data, cb);
-    })
-    .pre('publish', function(next, sock, data, cb) {
-        console.log('todo-pre-publish');
-        next(sock, data, cb);
-    })
-    .post('create', function(next, sock, data, cb) {
-        console.log('todo-post-create');
-        next(sock, data, cb);
-    })
-    .post('read', function(next, sock, data, cb) {
-        console.log('todo-post-read');
-        next(sock, data, cb);
-    })
-    .post('update', function(next, sock, data, cb) {
-        console.log('todo-post-update');
-        next(sock, data, cb);
-    })
-    .post('delete', function(next, sock, data, cb) {
-        console.log('todo-post-delete');
-        next(sock, data, cb);
-    })
-    .post('subscribe', function(next, sock, data, cb) {
-        console.log('todo-post-subscribe');
-        next(sock, data, cb);
-    })
-    .post('unsubscribe', function(next, sock, data, cb) {
-        console.log('todo-post-unsubscribe');
-        next(sock, data, cb);
-    })
-    .post('publish', function(next, sock, data, cb) {
-        console.log('todo-post-publish');
-        next(sock, data, cb);
+// Start up the application
+if (!module.parent) {
+    middleware({
+        io        : io,
+        db        : db,
+        publish   : pub,
+        subscribe : sub,
+        listener  : 'backbone'
     });
 
-support.model('todo', model);
+    middleware.pre('room:save', function(model, options, next) {
 
-
-server.listen(8080);
+    });
+    server.listen(8080);
+}
