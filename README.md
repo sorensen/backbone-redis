@@ -1,3 +1,4 @@
+[![build status](https://secure.travis-ci.org/sorensen/backbone-redis.png)](http://travis-ci.org/sorensen/backbone-redis)
 # Backbone Redis
 
 
